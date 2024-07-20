@@ -1,58 +1,176 @@
 <template>
-  <div class="hello">
+  <div>
     <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+
+    <section class="listaDeJogos">
+      <div class="jogo" v-for="(jogo, index) in jogos" :key="index">
+        <img :src="jogo.src" :alt="jogo.nome">
+        <br>
+        <button :id="'CS-jogar-' + jogo.nome" @click="openConfirmModal(jogo.nome)">JOGAR</button>
+      </div>
+    </section>
+
+    <div v-if="showConfirmModal" class="modal">
+      <div class="modal-content">
+        <p>Você realmente deseja jogar {{ selectedJogo }}?</p>
+        <button id="CS-confirmPlay-Sim" @click="confirmPlay">Sim</button>
+        <button id="CS-confirmPlay-Nao" @click="closeConfirmModal">Não</button>
+      </div>
+    </div>
+
+    <div v-if="showControlModal" class="modal">
+      <div class="modal-content">
+        <p>Escolha seu controle</p>
+        <button id="CS-selectControl-Controle" @click="selectControl('Controle')">Controle</button>
+        <button id="CS-selectControl-Teclado" @click="selectControl('Teclado')">Teclado</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: 'HelloWorld',
   props: {
     msg: String
+  },
+  data() {
+    return {
+      jogos: [
+        { nome: 'GTA 6', src: '/img/1335660.jpeg' },
+        { nome: 'BF5', src: '/img/5b36948b42e1cc51e0182c6f.webp' },
+        { nome: 'Need For Speed', src: '/img/cd9190a38df82b8c2a225fa6bce96f18.jpg' },
+        { nome: 'FIFA 24', src: '/img/FC24_standardkeyart_16x9_1_7b904bb9-3d14-42f9-8cf6-dc6f70673d41.webp' }
+      ],
+      showConfirmModal: false,
+      showControlModal: false,
+      selectedJogo: null,
+      migalhaDePao: {
+        data: null,
+        hora: null,
+        caminhoPecorrido: []
+      }
+    };
+  },
+  methods: {
+    openConfirmModal(jogoNome) {
+      this.selectedJogo = jogoNome;
+      this.trackButtonClick('CS-jogar-' + jogoNome);
+      this.showConfirmModal = true;
+    },
+    closeConfirmModal() {
+      this.trackButtonClick('CS-confirmPlay-Nao');
+      this.showConfirmModal = false;
+    },
+    confirmPlay() {
+      this.trackButtonClick('CS-confirmPlay-Sim');
+      this.showConfirmModal = false;
+      this.showControlModal = true;
+    },
+    selectControl(controlType) {
+      this.trackButtonClick('CS-selectControl-' + controlType);
+      this.showControlModal = false;
+      this.selectedJogo = null;
+      alert(`Você escolheu jogar com ${controlType}`);
+    },
+    trackButtonClick(buttonId) {
+      this.migalhaDePao.caminhoPecorrido.push(buttonId);
+      if (!this.migalhaDePao.data) {
+        const now = new Date();
+        this.migalhaDePao.data = now.toLocaleDateString('pt-BR');
+        this.migalhaDePao.hora = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        setTimeout(() => {
+          const migalhaJson = JSON.stringify(this.migalhaDePao, null, 2);
+          console.log(migalhaJson);
+          alert(migalhaJson);
+        }, 10000);
+      }
+    },
+    jogar(jogoAcessado) {
+      const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+      axios.post('http://localhost:3000/save', {
+        jogoAcessado,
+        hora
+      })
+      .then(response => {
+        console.log('Dados salvos com sucesso:', response.data);
+      })
+      .catch(error => {
+        console.error('Erro ao salvar os dados:', error);
+      });
+    }
   }
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
+a, h1 {
+  color: #111f11;
 }
-ul {
-  list-style-type: none;
-  padding: 0;
+
+.listaDeJogos {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  flex-direction: row;
+  flex-wrap: wrap;
 }
-li {
-  display: inline-block;
-  margin: 0 10px;
+
+.jogo {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  flex-direction: column;
+  align-items: center;
+  margin: 10px;
+  padding: 10px;
 }
-a {
-  color: #42b983;
+
+img {
+  width: 300px;
+  height: 300px;
+}
+
+button {
+  background: rgb(7, 141, 47);
+  color: aliceblue;
+  font-size: 15px;
+  width: 180px;
+  height: 40px;
+  text-decoration: none;
+  border: none;
+  border-radius: 2px;
+}
+
+.modal {
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0, 0, 0);
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 500px;
+  text-align: center;
+  border-radius: 10px;
 }
 </style>
