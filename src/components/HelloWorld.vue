@@ -1,3 +1,4 @@
+<!-- src/components/HelloWorld.vue -->
 <template>
   <div>
     <h1>{{ msg }}</h1>
@@ -6,33 +7,33 @@
       <div class="jogo" v-for="(jogo, index) in jogos" :key="index">
         <img :src="jogo.src" :alt="jogo.nome">
         <br>
-        <button :id="'CS-jogar-' + jogo.nome" @click="openConfirmModal(jogo.nome)">JOGAR</button>
+        <button :id="'CS-jogar-' + jogo.nome" @click="handleClick('CS-jogar-' + jogo.nome)">JOGAR</button>
       </div>
     </section>
 
     <div v-if="showConfirmModal" class="modal">
       <div class="modal-content">
         <p>Você realmente deseja jogar {{ selectedJogo }}?</p>
-        <button id="CS-confirmPlay-Sim" @click="confirmPlay">Sim</button>
-        <button id="CS-confirmPlay-Nao" @click="closeConfirmModal">Não</button>
+        <button id="CS-confirmPlay-Sim" @click="handleClick('CS-confirmPlay-Sim')">Sim</button>
+        <button id="CS-confirmPlay-Nao" @click="handleClick('CS-confirmPlay-Nao')">Não</button>
       </div>
     </div>
 
     <div v-if="showControlModal" class="modal">
       <div class="modal-content">
         <p>Escolha seu controle</p>
-        <button id="CS-selectControl-Controle" @click="selectControl('Controle')">Controle</button>
-        <button id="CS-selectControl-Teclado" @click="selectControl('Teclado')">Teclado</button>
+        <button id="CS-selectControl-Controle" @click="handleClick('CS-selectControl-Controle')">Controle</button>
+        <button id="CS-selectControl-Teclado" @click="handleClick('CS-selectControl-Teclado')">Teclado</button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
+import ClickTracker from '../ClickTracker';
 
 export default {
-  name: 'HelloWorld',
+  name: 'TrackClicks',
   props: {
     msg: String
   },
@@ -47,61 +48,25 @@ export default {
       showConfirmModal: false,
       showControlModal: false,
       selectedJogo: null,
-      migalhaDePao: {
-        data: null,
-        hora: null,
-        caminhoPecorrido: []
-      }
+      clickTracker: new ClickTracker('http://localhost:3030/save')
     };
   },
   methods: {
-    openConfirmModal(jogoNome) {
-      this.selectedJogo = jogoNome;
-      this.trackButtonClick('CS-jogar-' + jogoNome);
-      this.showConfirmModal = true;
-    },
-    closeConfirmModal() {
-      this.trackButtonClick('CS-confirmPlay-Nao');
-      this.showConfirmModal = false;
-    },
-    confirmPlay() {
-      this.trackButtonClick('CS-confirmPlay-Sim');
-      this.showConfirmModal = false;
-      this.showControlModal = true;
-    },
-    selectControl(controlType) {
-      this.trackButtonClick('CS-selectControl-' + controlType);
-      this.showControlModal = false;
-      this.selectedJogo = null;
-      alert(`Você escolheu jogar com ${controlType}`);
-    },
-    trackButtonClick(buttonId) {
-      this.migalhaDePao.caminhoPecorrido.push(buttonId);
-      if (!this.migalhaDePao.data) {
-        const now = new Date();
-        this.migalhaDePao.data = now.toLocaleDateString('pt-BR');
-        this.migalhaDePao.hora = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-        setTimeout(() => {
-          const migalhaJson = JSON.stringify(this.migalhaDePao, null, 2);
-          console.log(migalhaJson);
-          alert(migalhaJson);
-        }, 10000);
+    handleClick(buttonId) {
+      this.clickTracker.trackButtonClick(buttonId);
+      if (buttonId.startsWith('CS-jogar-')) {
+        this.selectedJogo = buttonId.replace('CS-jogar-', '');
+        this.showConfirmModal = true;
+      } else if (buttonId === 'CS-confirmPlay-Nao') {
+        this.showConfirmModal = false;
+      } else if (buttonId === 'CS-confirmPlay-Sim') {
+        this.showConfirmModal = false;
+        this.showControlModal = true;
+      } else if (buttonId.startsWith('CS-selectControl-')) {
+        this.showControlModal = false;
+        this.selectedJogo = null;
+        alert(`Você escolheu jogar com ${buttonId.replace('CS-selectControl-', '')}`);
       }
-    },
-    jogar(jogoAcessado) {
-      const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-      axios.post('http://localhost:3000/save', {
-        jogoAcessado,
-        hora
-      })
-      .then(response => {
-        console.log('Dados salvos com sucesso:', response.data);
-      })
-      .catch(error => {
-        console.error('Erro ao salvar os dados:', error);
-      });
     }
   }
 }
